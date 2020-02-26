@@ -59,6 +59,7 @@ const RoomProvider = ({ children }) => {
     const maxPriceVal = Math.max(...rooms.map(room => room.price));
     const maxSizeVal = Math.max(...rooms.map(room => room.size));
     setFilters({
+      ...filters,
       price: maxPriceVal,
       maxPrice: maxPriceVal,
       maxSize: maxSizeVal
@@ -66,12 +67,22 @@ const RoomProvider = ({ children }) => {
   }, []);
 
   const handleChange = e => {
-    const { type, name, value } = e.target;
-    console.log({ type, name, value });
+    const value = e.type === "checkbox" ? e.target.checked : e.target.value;
+    setFilters({
+      ...filters,
+      [e.target.name]: value
+    });
+    filterRooms();
   };
 
   const filterRooms = () => {
-    console.log("hello");
+    let { type, capacity, price, minSize, maxSize, breakfast, pets } = filters;
+    let tempRooms = [...rooms];
+    if (type !== "all") {
+      tempRooms = tempRooms.filter(rooms => rooms.type === type);
+    }
+    console.log({ tempRooms });
+    setSortedRooms([...tempRooms]);
   };
 
   const getRoom = slug => {
