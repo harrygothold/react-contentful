@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from "react";
-import items from "./data";
+import Client from "./Contentful";
 
 const Context = createContext();
 
@@ -25,15 +25,7 @@ const RoomProvider = ({ children }) => {
     sortedRooms,
     featuredRooms,
     loading,
-    type: filters.type,
-    capacity: filters.capacity,
-    price: filters.price,
-    minPrice: filters.minPrice,
-    maxPrice: filters.maxPrice,
-    minSize: filters.minSize,
-    maxSize: filters.maxPrice,
-    breakfast: filters.breakfast,
-    pets: filters.pets
+    ...filters
   };
 
   const formatData = items => {
@@ -51,37 +43,69 @@ const RoomProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    let rooms = formatData(items);
-    const featured = rooms.filter(room => room.featured === true);
-    setFeaturedRooms([...featured]);
-    setRooms([...rooms]);
-    setSortedRooms([...rooms]);
-    const maxPriceVal = Math.max(...rooms.map(room => room.price));
-    const maxSizeVal = Math.max(...rooms.map(room => room.size));
-    setFilters({
-      ...filters,
-      price: maxPriceVal,
-      maxPrice: maxPriceVal,
-      maxSize: maxSizeVal
-    });
+    // Client.getEntries({ content_type: "beachResortRoom" }).then(res =>
+    //   console.log(res.items)
+    // );
+    const getData = async () => {
+      try {
+        const res = await Client.getEntries({
+          content_type: "beachResortRoom"
+        });
+        let rooms = formatData(res.items);
+        const featured = rooms.filter(room => room.featured === true);
+        setFeaturedRooms([...featured]);
+        setRooms([...rooms]);
+        setSortedRooms([...rooms]);
+        const maxPriceVal = Math.max(...rooms.map(room => room.price));
+        const maxSizeVal = Math.max(...rooms.map(room => room.size));
+        setFilters({
+          ...filters,
+          price: maxPriceVal,
+          maxPrice: maxPriceVal,
+          maxSize: maxSizeVal
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    getData();
   }, []);
 
   const handleChange = e => {
-    const value = e.type === "checkbox" ? e.target.checked : e.target.value;
+    const target = e.target;
+    const value = target.type === "checkbox" ? target.checked : target.value;
+    const name = e.target.name;
     setFilters({
       ...filters,
-      [e.target.name]: value
+      [name]: value
     });
-    filterRooms();
   };
+
+  useEffect(() => {
+    filterRooms();
+  }, [filters]);
 
   const filterRooms = () => {
     let { type, capacity, price, minSize, maxSize, breakfast, pets } = filters;
     let tempRooms = [...rooms];
+    capacity = +capacity;
+    price = +price;
     if (type !== "all") {
-      tempRooms = tempRooms.filter(rooms => rooms.type === type);
+      tempRooms = rooms.filter(room => room.type === type);
     }
-    console.log({ tempRooms });
+    if (capacity !== 1) {
+      tempRooms = rooms.filter(room => room.capacity >= capacity);
+    }
+    tempRooms = tempRooms.filter(room => room.price <= price);
+    tempRooms = tempRooms.filter(
+      room => room.size >= minSize && room.size <= maxSize
+    );
+    if (breakfast) {
+      tempRooms = tempRooms.filter(room => room.breakfast);
+    }
+    if (pets) {
+      tempRooms = tempRooms.filter(room => room.pets);
+    }
     setSortedRooms([...tempRooms]);
   };
 
